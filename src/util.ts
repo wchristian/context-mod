@@ -11,6 +11,7 @@ import {Comment} from "snoowrap";
 import {inflateSync, deflateSync} from "zlib";
 import pixelmatch from 'pixelmatch';
 import os from 'os';
+import {Date as SugarDate} from 'sugar';
 import {
     ActivityWindowCriteria, ActivityWindowType,
     CacheOptions,
@@ -59,6 +60,7 @@ import stringSimilarity from 'string-similarity';
 import calculateCosineSimilarity from "./Utils/StringMatching/CosineSimilarity";
 import levenSimilarity from "./Utils/StringMatching/levenSimilarity";
 import {isRequestError, isStatusError} from "./Utils/Errors";
+import Chainable = sugarjs.Date.Chainable;
 //import {ResembleSingleCallbackComparisonResult} from "resemblejs";
 
 // want to guess how many concurrent image comparisons we should be doing
@@ -1583,4 +1585,26 @@ export const likelyJson5 = (str: string): boolean => {
         break;
     }
     return validStart;
+}
+
+export const compareDateRange = (val: string, compareToVal: string = 'now') => {
+    const range = SugarDate.range(val);
+    if(!range.isValid()) {
+        throw new SimpleError(`Date range was not valid: ${val}`);
+    }
+    // @ts-ignore
+    const start = new SugarDate(range.start);
+    // @ts-ignore
+    let end = new SugarDate(range.end);
+
+
+    if(end.isBefore(start.toJSON().raw).raw) {
+        end.addWeeks(1);
+    }
+    // @ts-ignore
+    const realRange = SugarDate.range(start.raw, end.raw);
+    const compareTo = SugarDate.create(compareToVal);
+
+    const between = realRange.contains(compareTo);
+    return [between, realRange];
 }
