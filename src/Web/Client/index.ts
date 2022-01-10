@@ -1155,7 +1155,9 @@ const webClient = async (options: OperatorConfig) => {
                     }
                 }).json() as CMInstance;
 
-                botStat = {...botStat, ...resp, online: true};
+                const {bots, ...restResp} = resp;
+
+                botStat = {...botStat, ...restResp, bots: bots.map(x => ({...x, instance: botStat})), online: true};
                 const sameNameIndex = cmInstances.findIndex(x => x.friendly === botStat.friendly);
                 if(sameNameIndex > -1 && sameNameIndex !== existingClientIndex) {
                     logger.warn(`Client returned a friendly name that is not unique (${botStat.friendly}), will fallback to host as friendly (${botStat.normalUrl})`);
