@@ -46,6 +46,7 @@ import {MESSAGE} from "triple-beam";
 import Autolinker from "autolinker";
 import path from "path";
 import {ExtendedSnoowrap} from "../../Utils/SnoowrapClients";
+import ClientUser from "../Common/User/ClientUser";
 
 const emitter = new EventEmitter();
 
@@ -202,8 +203,9 @@ const webClient = async (options: OperatorConfig) => {
         done(null, { subreddits: subreddits.map((x: Subreddit) => x.display_name), isOperator: webOps.includes(user.toLowerCase()), name: user, scope, token, tokenExpiresAt: dayjs().unix() + (60 * 60) });
     });
 
-    passport.deserializeUser(async function (obj, done) {
-        done(null, obj as Express.User);
+    passport.deserializeUser(async function (obj: any, done) {
+        const user = new ClientUser(obj.name, obj.subreddits, {token: obj.token, scope: obj.scope, webOperator: obj.isOperator, tokenExpiresAt: obj.tokenExpiresAt});
+        done(null, user);
         // const data = await webCache.get(`userSession-${obj}`) as object;
         // if (data === undefined) {
         //     done('Not Found');
@@ -420,7 +422,7 @@ const webClient = async (options: OperatorConfig) => {
                     '<div>or as an argument: <span class="font-mono">--operator YourRedditUsername</span></div>'});
         }
         // or if there is an operator and current user is operator
-        if(req.user.isOperator) {
+        if(req.user?.clientData?.webOperator) {
             return next();
         } else {
             return res.render('error', {error: 'You must be an <b>Operator</b> to access this route.'});
@@ -432,7 +434,7 @@ const webClient = async (options: OperatorConfig) => {
             redirectUri,
             clientId,
             clientSecret,
-            token: req.isAuthenticated() && req.user.isOperator ? token : undefined
+            token: req.isAuthenticated() && req.user?.clientData?.webOperator ? token : undefined
         });
     });
 
@@ -633,7 +635,7 @@ const webClient = async (options: OperatorConfig) => {
 
         const isOperator = instance.operators.includes(user.name);
         const canAccessBot = isOperator || intersect(user.subreddits, instance.subreddits).length > 0;
-        if (!user.isOperator && !canAccessBot) {
+        if (!user.clientData?.webOperator && !canAccessBot) {
             return res.status(404).render('error', {error: msg});
         }
 
@@ -671,7 +673,7 @@ const webClient = async (options: OperatorConfig) => {
 
         const isOperator = instance.operators.includes(user.name);
         const canAccessBot = isOperator || intersect(user.subreddits, botInstance.subreddits.map(x => x.replace(/\\*r\/*/,''))).length > 0;
-        if (!user.isOperator && !canAccessBot) {
+        if (!user.clientData?.webOperator && !canAccessBot) {
             return res.status(404).render('error', {error: msg});
         }
 
@@ -776,7 +778,7 @@ const webClient = async (options: OperatorConfig) => {
 
         const shownInstances = cmInstances.reduce((acc: CMInstance[], curr) => {
             const isBotOperator = curr.operators.map(x => x.toLowerCase()).includes(user.name.toLowerCase());
-            if(user.isOperator) {
+            if(user?.clientData?.webOperator) {
                 // @ts-ignore
                 return acc.concat({...curr, canAccessLocation: true, isOperator: isBotOperator});
             }
@@ -862,7 +864,7 @@ const webClient = async (options: OperatorConfig) => {
         res.render('config', {
             title: `Configuration Editor`,
             format,
-            canSave: req.user?.scope?.includes('wikiedit') && req.user?.tokenExpiresAt !== undefined && dayjs.unix(req.user?.tokenExpiresAt).isAfter(dayjs())
+            canSave: req.user?.clientData?.scope?.includes('wikiedit') && req.user?.clientData?.tokenExpiresAt !== undefined && dayjs.unix(req.user?.clientData.tokenExpiresAt).isAfter(dayjs())
         });
     });
 
@@ -874,7 +876,7 @@ const webClient = async (options: OperatorConfig) => {
             userAgent,
             clientId,
             clientSecret,
-            accessToken: req.user?.token
+            accessToken: req.user?.clientData?.token
         });
 
         try {
@@ -1027,7 +1029,7 @@ const webClient = async (options: OperatorConfig) => {
             // setup general web log event
             const webLogListener = (log: string) => {
                 const subName = parseSubredditLogName(log);
-                if((subName === undefined || user.isOperator) && isLogLineMinLevel(log, session.level as string)) {
+                if((subName === undefined || user.clientData?.webOperator === true) && isLogLineMinLevel(log, session.level as string)) {
                     io.to(session.id).emit('webLog', formatLogLineToHtml(log));
                 }
             }

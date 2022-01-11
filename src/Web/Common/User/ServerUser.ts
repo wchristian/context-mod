@@ -3,10 +3,15 @@ import CMUser from "./CMUser";
 import {intersect} from "../../../util";
 import {App} from "../../../App";
 import Bot from "../../../Bot";
+import {Manager} from "../../../Subreddit/Manager";
 
-class ServerUser extends CMUser<App,Bot> {
+class ServerUser extends CMUser<App, Bot, Manager> {
 
-    isInstanceOperator(val: App): boolean {
+    constructor(public name: string, public subreddits: string[], public machine: boolean, public isOperator: boolean) {
+        super(name, subreddits);
+    }
+
+    isInstanceOperator(): boolean {
         return this.isOperator;
     }
 
@@ -18,10 +23,17 @@ class ServerUser extends CMUser<App,Bot> {
         return this.isOperator || intersect(this.subreddits, val.subManagers.map(y => y.subreddit.display_name)).length > 0;
     }
 
+    accessibleBots(bots: Bot[]): Bot[] {
+        return this.isOperator ? bots : bots.filter(x => intersect(this.subreddits, x.subManagers.map(y => y.subreddit.display_name)).length > 0);
+    }
+
     canAccessSubreddit(val: Bot, name: string): boolean {
         return this.isOperator || this.subreddits.includes(name) && val.subManagers.some(y => y.subreddit.display_name === name);
     }
 
+    accessibleSubreddits(bot: Bot): Manager[] {
+        return this.isOperator ? bot.subManagers : bot.subManagers.filter(x => intersect(this.subreddits, [x.subreddit.display_name]).length > 0);
+    }
 }
 
 export default ServerUser;
