@@ -13,12 +13,27 @@ import as from 'async';
 import fetch from 'node-fetch';
 import {
     asSubmission,
-    buildCacheOptionsFromProvider, buildCachePrefix,
-    cacheStats, compareDurationValue, comparisonTextOp, createCacheManager, createHistoricalStatsDisplay,
-    formatNumber, getActivityAuthorName, getActivitySubredditName, isStrongSubredditState,
-    mergeArr, parseDurationComparison,
-    parseExternalUrl, parseGenericValueComparison, parseRedditEntity,
-    parseWikiContext, shouldCacheSubredditStateCriteriaResult, subredditStateIsNameOnly, toStrongSubredditState
+    buildCacheOptionsFromProvider,
+    buildCachePrefix,
+    cacheStats,
+    compareDurationValue,
+    comparisonTextOp,
+    createCacheManager,
+    createHistoricalStatsDisplay,
+    fetchExternalUrl,
+    formatNumber,
+    getActivityAuthorName,
+    getActivitySubredditName,
+    isStrongSubredditState,
+    mergeArr,
+    parseDurationComparison,
+    parseExternalUrl,
+    parseGenericValueComparison,
+    parseRedditEntity,
+    parseWikiContext,
+    shouldCacheSubredditStateCriteriaResult,
+    subredditStateIsNameOnly,
+    toStrongSubredditState
 } from "../util";
 import LoggedError from "../Utils/LoggedError";
 import {
@@ -593,8 +608,7 @@ export class SubredditResources {
             }
         } else {
             try {
-                const response = await fetch(extUrl as string);
-                wikiContent = await response.text();
+                wikiContent = await fetchExternalUrl(extUrl as string, this.logger);
             } catch (err: any) {
                 const msg = `Error occurred while trying to fetch the url ${extUrl}`;
                 this.logger.error(msg, err);
@@ -781,8 +795,8 @@ export class SubredditResources {
         return await this.isItem(i, activityStates, this.logger);
     }
 
-    async isSubreddit (subreddit: Subreddit, stateCriteria: SubredditState | StrongSubredditState, logger: Logger) {
-        delete stateCriteria.stateDescription;
+    async isSubreddit (subreddit: Subreddit, stateCriteriaRaw: SubredditState | StrongSubredditState, logger: Logger) {
+        const {stateDescription, ...stateCriteria} = stateCriteriaRaw;
 
         if (Object.keys(stateCriteria).length === 0) {
             return true;
