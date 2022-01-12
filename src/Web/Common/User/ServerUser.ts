@@ -1,6 +1,6 @@
 import {BotInstance, CMInstance} from "../../interfaces";
 import CMUser from "./CMUser";
-import {intersect} from "../../../util";
+import {intersect, parseRedditEntity} from "../../../util";
 import {App} from "../../../App";
 import Bot from "../../../Bot";
 import {Manager} from "../../../Subreddit/Manager";
@@ -28,7 +28,7 @@ class ServerUser extends CMUser<App, Bot, Manager> {
     }
 
     canAccessSubreddit(val: Bot, name: string): boolean {
-        return this.isOperator || this.subreddits.includes(name) && val.subManagers.some(y => y.subreddit.display_name === name);
+        return this.isOperator || this.subreddits.includes(parseRedditEntity(name).name) && val.subManagers.some(y => y.subreddit.display_name.toLowerCase() === parseRedditEntity(name).name.toLowerCase());
     }
 
     accessibleSubreddits(bot: Bot): Manager[] {

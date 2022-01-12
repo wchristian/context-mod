@@ -5,6 +5,7 @@ import LoggedError from "../../../../../Utils/LoggedError";
 import {authUserCheck, botRoute} from "../../../middleware";
 import {booleanMiddle} from "../../../../Common/middleware";
 import {Manager} from "../../../../../Subreddit/Manager";
+import {parseRedditEntity} from "../../../../../util";
 
 const action = async (req: Request, res: Response) => {
     const bot = req.serverBot;
@@ -13,7 +14,7 @@ const action = async (req: Request, res: Response) => {
     const userName = req.user?.name;
     let subreddits: Manager[] = req.user?.accessibleSubreddits(bot) as Manager[];
     if (subreddit !== 'All') {
-        subreddits = subreddits.filter(x => x.subreddit.display_name === subreddit);
+        subreddits = subreddits.filter(x => x.subreddit.display_name === parseRedditEntity(subreddit).name);
     }
 
     for (const manager of subreddits) {

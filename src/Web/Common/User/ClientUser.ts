@@ -1,6 +1,6 @@
 import {BotInstance, CMInstance} from "../../interfaces";
 import CMUser from "./CMUser";
-import {intersect} from "../../../util";
+import {intersect, parseRedditEntity} from "../../../util";
 
 class ClientUser extends CMUser<CMInstance, BotInstance, string> {
 
@@ -9,15 +9,15 @@ class ClientUser extends CMUser<CMInstance, BotInstance, string> {
     }
 
     canAccessInstance(val: CMInstance): boolean {
-        return this.isInstanceOperator(val) || intersect(this.subreddits, val.subreddits.map(x => x.replace(/\\*r\/*/,''))).length > 0;
+        return this.isInstanceOperator(val) || intersect(this.subreddits, val.subreddits.map(x => parseRedditEntity(x).name)).length > 0;
     }
 
     canAccessBot(val: BotInstance): boolean {
-        return this.isInstanceOperator(val.instance) || intersect(this.subreddits, val.subreddits.map(x => x.replace(/\\*r\/*/,''))).length > 0;
+        return this.isInstanceOperator(val.instance) || intersect(this.subreddits, val.subreddits.map(x => parseRedditEntity(x).name)).length > 0;
     }
 
     canAccessSubreddit(val: BotInstance, name: string): boolean {
-        return this.isInstanceOperator(val.instance) || this.subreddits.includes(name);
+        return this.isInstanceOperator(val.instance) || this.subreddits.map(x => x.toLowerCase()).includes(parseRedditEntity(name).name.toLowerCase());
     }
 
     accessibleBots(bots: BotInstance[]): BotInstance[] {
@@ -28,12 +28,12 @@ class ClientUser extends CMUser<CMInstance, BotInstance, string> {
             if (this.isInstanceOperator(x.instance)) {
                 return true;
             }
-            return intersect(this.subreddits, x.subreddits).length > 0
+            return intersect(this.subreddits, x.subreddits.map(y => parseRedditEntity(y).name)).length > 0
         });
     }
 
     accessibleSubreddits(bot: BotInstance): string[] {
-        return this.isInstanceOperator(bot.instance) ? bot.subreddits.map(x => x.replace(/\\*r\/*/,'')) : intersect(this.subreddits, bot.subreddits.map(x => x.replace(/\\*r\/*/,'')));
+        return this.isInstanceOperator(bot.instance) ? bot.subreddits.map(x => parseRedditEntity(x).name) : intersect(this.subreddits, bot.subreddits.map(x => parseRedditEntity(x).name));
     }
 
 }
