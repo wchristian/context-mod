@@ -5,15 +5,15 @@ import {intersect} from "../../../util";
 class ClientUser extends CMUser<CMInstance, BotInstance, string> {
 
     isInstanceOperator(val: CMInstance): boolean {
-        return val.operators.includes(this.name);
+        return val.operators.map(x=> x.toLowerCase()).includes(this.name.toLowerCase());
     }
 
     canAccessInstance(val: CMInstance): boolean {
-        return this.isInstanceOperator(val) || intersect(this.subreddits, val.subreddits).length > 0;
+        return this.isInstanceOperator(val) || intersect(this.subreddits, val.subreddits.map(x => x.replace(/\\*r\/*/,''))).length > 0;
     }
 
     canAccessBot(val: BotInstance): boolean {
-        return this.isInstanceOperator(val.instance) || intersect(this.subreddits, val.subreddits).length > 0;
+        return this.isInstanceOperator(val.instance) || intersect(this.subreddits, val.subreddits.map(x => x.replace(/\\*r\/*/,''))).length > 0;
     }
 
     canAccessSubreddit(val: BotInstance, name: string): boolean {
@@ -33,7 +33,7 @@ class ClientUser extends CMUser<CMInstance, BotInstance, string> {
     }
 
     accessibleSubreddits(bot: BotInstance): string[] {
-        return this.isInstanceOperator(bot.instance) ? bot.subreddits : intersect(this.subreddits, bot.subreddits);
+        return this.isInstanceOperator(bot.instance) ? bot.subreddits.map(x => x.replace(/\\*r\/*/,'')) : intersect(this.subreddits, bot.subreddits.map(x => x.replace(/\\*r\/*/,'')));
     }
 
 }

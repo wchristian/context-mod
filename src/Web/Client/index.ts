@@ -90,19 +90,6 @@ declare module 'express-session' {
     }
 }
 
-// declare global {
-//     namespace Express {
-//         interface User {
-//             name: string
-//             subreddits: string[]
-//             machine?: boolean
-//             isOperator?: boolean
-//             realManagers?: string[]
-//             moderatedManagers?: string[]
-//         }
-//     }
-// }
-
 interface ConnectedUserInfo {
     level?: string,
     user?: string,
@@ -631,20 +618,16 @@ const webClient = async (options: OperatorConfig) => {
             return res.status(404).render('error', {error: msg});
         }
 
-        const user = req.user as Express.User;
-
-        const isOperator = instance.operators.includes(user.name);
-        const canAccessBot = isOperator || intersect(user.subreddits, instance.subreddits).length > 0;
-        if (!user.clientData?.webOperator && !canAccessBot) {
+        if (!req.user?.clientData?.webOperator && !req.user?.canAccessInstance(instance)) {
             return res.status(404).render('error', {error: msg});
         }
 
-        if (req.params.subreddit !== undefined && !isOperator && !user.subreddits.includes(req.params.subreddit)) {
+        if (req.params.subreddit !== undefined && !req.user?.isInstanceOperator(instance) && !req.user?.subreddits.includes(req.params.subreddit)) {
             return res.status(404).render('error', {error: msg});
         }
         req.instance = instance;
         req.session.botId = instance.friendly;
-        if(canAccessBot) {
+        if(req.user?.canAccessInstance(instance)) {
             req.session.authBotId = instance.friendly;
         }
         return next();
@@ -669,15 +652,11 @@ const webClient = async (options: OperatorConfig) => {
             return res.status(404).render('error', {error: msg});
         }
 
-        const user = req.user as Express.User;
-
-        const isOperator = instance.operators.includes(user.name);
-        const canAccessBot = isOperator || intersect(user.subreddits, botInstance.subreddits.map(x => x.replace(/\\*r\/*/,''))).length > 0;
-        if (!user.clientData?.webOperator && !canAccessBot) {
+        if (!req.user?.clientData?.webOperator && !req.user?.canAccessBot(botInstance)) {
             return res.status(404).render('error', {error: msg});
         }
 
-        if (req.params.subreddit !== undefined && !isOperator && !user.subreddits.includes(req.params.subreddit)) {
+        if (req.params.subreddit !== undefined && !req.user?.isInstanceOperator(instance) && !req.user?.subreddits.includes(req.params.subreddit)) {
             return res.status(404).render('error', {error: msg});
         }
         req.bot = botInstance;
@@ -777,12 +756,12 @@ const webClient = async (options: OperatorConfig) => {
         const level = req.session.level;
 
         const shownInstances = cmInstances.reduce((acc: CMInstance[], curr) => {
-            const isBotOperator = curr.operators.map(x => x.toLowerCase()).includes(user.name.toLowerCase());
+            const isBotOperator = req.user?.isInstanceOperator(curr);
             if(user?.clientData?.webOperator) {
                 // @ts-ignore
                 return acc.concat({...curr, canAccessLocation: true, isOperator: isBotOperator});
             }
-            if(!isBotOperator && intersect(user.subreddits, curr.subreddits).length === 0) {
+            if(!isBotOperator && !req.user?.canAccessInstance(curr)) {
                 return acc;
             }
             // @ts-ignore
@@ -809,7 +788,7 @@ const webClient = async (options: OperatorConfig) => {
             return res.render('offline', {
                 instances: shownInstances,
                 instanceId: (req.instance as CMInstance).friendly,
-                isOperator: instance.operators.includes((req.user as Express.User).name),
+                isOperator: req.user?.isInstanceOperator(instance),
                 // @ts-ignore
                 logs: filterLogBySubreddit(instanceLogMap, [instance.friendly], {limit, sort, level, allLogName: 'web', allLogsParser: parseInstanceLogInfoName }).get(instance.friendly),
                 logSettings: {
@@ -842,7 +821,7 @@ const webClient = async (options: OperatorConfig) => {
             bots: resp.bots,
             botId: (req.instance as CMInstance).friendly,
             instanceId: (req.instance as CMInstance).friendly,
-            isOperator: instance.operators.includes((req.user as Express.User).name),
+            isOperator: req.user?.isInstanceOperator(instance),
             operators: instance.operators.join(', '),
             operatorDisplay: instance.operatorDisplay,
             logSettings: {
@@ -1125,7 +1104,7 @@ const webClient = async (options: OperatorConfig) => {
                 if(lastCheck > 15) {
                     shouldCheck = true;
                 }
-            } else if(lastCheck > 300) {
+            } else if(lastCheck > 60) {
                 shouldCheck = true;
             }
         }

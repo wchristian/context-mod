@@ -85,7 +85,7 @@ const status = () => {
             const sd = {
                 name: m.displayLabel,
                 //linkName: s.replace(/\W/g, ''),
-                logs: logs.get(m.subreddit.display_name) || [], // provide a default empty value in case we truly have not logged anything for this subreddit yet
+                logs: logs.get(m.displayLabel) || [], // provide a default empty value in case we truly have not logged anything for this subreddit yet
                 botState: m.botState,
                 eventsState: m.eventsState,
                 queueState: m.queueState,

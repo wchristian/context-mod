@@ -26,7 +26,7 @@ const logs = (subLogMap: Map<string, LogEntry[]>) => {
 
         const userName = req.user?.name as string;
         const isOperator = req.user?.isInstanceOperator(req.botApp);
-        const realManagers = req.user?.accessibleSubreddits(req.botApp).map(x => x.displayLabel) as string[];
+        const realManagers = req.botApp.bots.map(x => req.user?.accessibleSubreddits(x).map(x => x.displayLabel)).flat() as string[];
         const {level = 'verbose', stream, limit = 200, sort = 'descending', streamObjects = false} = req.query;
         if (stream) {
             const origin = req.header('X-Forwarded-For') ?? req.header('host');
